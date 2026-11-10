@@ -136,7 +136,17 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
 .fx-on .fx-fade, .fx-on .fx-row { opacity: 1; transform: none; }
 .fx-bar:hover { filter: brightness(.9); }
 .fx-done .fx-bar, .fx-done .fx-fade, .fx-done .fx-row { transition: none !important; }
-@media (prefers-reduced-motion: reduce) { .tip { transition: none; } .fx-bar, .fx-fade, .fx-row { transition: none !important; } }
+/* títulos: o título da edição entra deslizando da esquerda; os títulos de seção passam de cinza-claro
+   para a cor do texto e o sublinhado azul se estende a partir do lado em que o título está alinhado */
+h2.q.fx-h { opacity: 0; transform: translateX(-70px); transition: opacity .8s ease, transform 1s cubic-bezier(.2,.75,.25,1); }
+h2.q.fx-h.fx-on { opacity: 1; transform: none; }
+h3.sec.fx-h { color: #cfcaca; transition: color 1.1s ease; }
+h3.sec.fx-h::after { transform: scaleX(0); transform-origin: 0 50%; opacity: .35; transition: transform 1s cubic-bezier(.2,.75,.25,1), opacity 1s ease; }
+h3.sec.right.fx-h::after { transform-origin: 100% 50%; }
+h3.sec.fx-h.fx-on { color: var(--ink); }
+h3.sec.fx-h.fx-on::after { transform: scaleX(1); opacity: 1; }
+.fx-done.fx-h, .fx-done.fx-h::after { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .tip { transition: none; } .fx-bar, .fx-fade, .fx-row, .fx-h, .fx-h::after { transition: none !important; } }
 </style>
 </head>
 <body>
@@ -251,6 +261,9 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
   function tipOn(c, x, y, html) { var s = c.box.clientWidth / c.w; c.tip.innerHTML = html; c.tip.style.left = Math.min(Math.max(x * s, 80), c.box.clientWidth - 80) + "px"; c.tip.style.top = (y * s) + "px"; c.tip.classList.add("on"); }
   function tipOff(c) { c.tip.classList.remove("on"); }
   function hover(node, c, fx) { node.addEventListener("pointerenter", fx); node.addEventListener("pointerdown", fx); node.addEventListener("pointerleave", function () { tipOff(c); }); }
+  function clamp(v) { return Math.max(0, Math.min(1, v)); }
+  function ease(k) { return 1 - Math.pow(1 - k, 3); }
+  function anim(ms, frame) { var t0 = null; function step(ts) { if (t0 === null) t0 = ts; var t = ts - t0; frame(Math.min(t, ms)); if (t < ms) requestAnimationFrame(step); } requestAnimationFrame(step); }
   function xLabel(svg, x, y, txt, size) { el("text", { x: x, y: y, transform: "rotate(-45 " + x + " " + y + ")", "text-anchor": "end", "font-size": size, fill: C.ink }, svg, txt); }
 
   // selos
@@ -274,11 +287,11 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
     document.getElementById("lg-idcl-cat").hidden = !cat;
     var c = setup("ch-idcl", 440), d = D.idcl, small = c.w < 520, fs = small ? 11 : 13;
     var m = { l: 10, r: 10, t: 26, b: 58 }, W = c.w - m.l - m.r, H = c.h - m.t - m.b, bw = W / d.length;
-    var y = function (v) { return m.t + H - v / 85 * H; };
+    var y = function (v) { return m.t + H - v / 85 * H; }, bars = [];
     d.forEach(function (r, i) {
       var x = m.l + i * bw;
-      el("rect", { x: x + bw * 0.2, width: bw * 0.6, y: y(r[1]), height: y(0) - y(r[1]), fill: C.orange, class: "fx-bar", style: "transition-delay:" + (i * 45) + "ms" }, c.svg);
-      el("text", { x: x + bw / 2, y: y(r[1]) - 7, "text-anchor": "middle", "font-size": fs, fill: "#111", class: "fx-fade", style: "transition-delay:" + (500 + i * 45) + "ms" }, c.svg, n1(r[1]));
+      bars.push([el("rect", { x: x + bw * 0.2, width: bw * 0.6, y: y(r[1]), height: y(0) - y(r[1]), fill: C.orange, class: "bar" }, c.svg),
+        el("text", { x: x + bw / 2, y: y(r[1]) - 7, "text-anchor": "middle", "font-size": fs, fill: "#111" }, c.svg, n1(r[1])), r[1]]);
       xLabel(c.svg, x + bw / 2 + 4, y(0) + 14, r[0], fs);
     });
     el("line", { x1: m.l, x2: c.w - m.r, y1: y(0), y2: y(0), stroke: C.base, "stroke-width": 1.5 }, c.svg);
@@ -295,6 +308,16 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
           (cat ? "<br>" + Math.round(r[2] * 13 / 100) + " de 13 categorias: <b>" + n1(r[2]) + "%</b>" : ""));
       });
     });
+    // barras sobem uma a uma, da esquerda para a direita, com o rótulo acompanhando o topo e contando até o valor
+    function put(b, v) { b[0].setAttribute("y", y(v)); b[0].setAttribute("height", Math.max(0, y(0) - y(v))); b[1].setAttribute("y", y(v) - 7); b[1].textContent = n1(v); }
+    c.box._final = function () { bars.forEach(function (b) { put(b, b[2]); b[1].style.opacity = 1; }); };
+    c.box._reset = function () { bars.forEach(function (b) { put(b, 0); b[1].style.opacity = 0; }); };
+    c.box._play = function () {
+      bars.forEach(function (b) { put(b, 0); b[1].style.opacity = 0; });
+      anim(110 * bars.length + 750, function (t) {
+        bars.forEach(function (b, i) { var k = ease(clamp((t - i * 110) / 750)); put(b, b[2] * k); b[1].style.opacity = k > 0 ? 1 : 0; });
+      });
+    };
     fx.arm("ch-idcl");
     c.svg.setAttribute("aria-label", "Índice de Difusão de setembro de 2025 a outubro de 2026. Em outubro de 2026, 58,1%.");
   }
@@ -304,16 +327,17 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
     var m = { l: 22, r: 30, t: 30, b: 58 }, W = c.w - m.l - m.r, H = c.h - m.t - m.b;
     var mn = -15, mx = 8, x = function (i) { return m.l + i * W / (d.length - 1); }, y = function (v) { return m.t + (mx - v) / (mx - mn) * H; };
     d.forEach(function (r, i) { xLabel(c.svg, x(i) + 4, c.h - m.b + 18, r[0], fs); });
-    var series = [[1, C.navy], [2, C.orange]];
+    var series = [[1, C.navy], [2, C.orange]], labs = [], cid = "clip-termo";
+    var clip = el("rect", { x: 0, y: 0, width: c.w, height: c.h }, el("clipPath", { id: cid }, el("defs", {}, c.svg)));
     series.forEach(function (s) {
-      el("path", { d: d.map(function (r, i) { return (i ? "L" : "M") + x(i) + "," + y(r[s[0]]); }).join(""), fill: "none", stroke: s[1], "stroke-width": 3, "stroke-linejoin": "round", class: "fx-line" }, c.svg);
+      el("path", { d: d.map(function (r, i) { return (i ? "L" : "M") + x(i) + "," + y(r[s[0]]); }).join(""), fill: "none", stroke: s[1], "stroke-width": 3, "stroke-linejoin": "round", "stroke-linecap": "round", "clip-path": "url(#" + cid + ")" }, c.svg);
     });
     series.forEach(function (s) {
       d.forEach(function (r, i) {
         var v = r[s[0]], o = r[3 - s[0]], above = v >= o;
         var ty = above ? y(v) - 9 : y(v) + 19;
         if (i === d.length - 1) { ty = above ? y(v) - 4 : y(v) + 14; }
-        el("text", { x: x(i) + (i === d.length - 1 ? 12 : 0), y: ty, "text-anchor": i === d.length - 1 ? "start" : "middle", "font-size": fs, "font-weight": 600, fill: "#333", stroke: "#f2eeee", "stroke-width": 3, "paint-order": "stroke", class: "fx-fade", style: "transition-delay:" + (300 + i * 90) + "ms" }, c.svg, n1(v));
+        labs.push([el("text", { x: x(i) + (i === d.length - 1 ? 12 : 0), y: ty, "text-anchor": i === d.length - 1 ? "start" : "middle", "font-size": fs, "font-weight": 600, fill: "#333", stroke: "#f2eeee", "stroke-width": 3, "paint-order": "stroke" }, c.svg, n1(v)), x(i)]);
       });
     });
     d.forEach(function (r, i) {
@@ -321,6 +345,21 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
       var hit = el("rect", { x: x(i) - step / 2, y: m.t, width: step, height: H, fill: "transparent" }, c.svg);
       hover(hit, c, function () { tipOn(c, x(i), Math.min(y(r[1]), y(r[2])) - 22, "<b>" + esc(r[0]) + "</b><br>Mercado total: <b>" + n1(r[1], true) + "%</b><br>Sem leite longa vida: <b>" + n1(r[2], true) + "%</b>"); });
     });
+    // linhas se desenham da esquerda para a direita; um rótulo acompanha a ponta de cada linha mostrando o valor
+    // do trecho, e os rótulos fixos aparecem à medida que a linha passa por cada mês
+    var tips = series.map(function () { return el("text", { "font-size": fs, "font-weight": 700, fill: "#333", stroke: "#f2eeee", "stroke-width": 3, "paint-order": "stroke", opacity: 0 }, c.svg); });
+    function at(si, xc) { var st = W / (d.length - 1), j = Math.min(d.length - 2, Math.max(0, Math.floor((xc - m.l) / st))), f = clamp((xc - x(j)) / st); return d[j][series[si][0]] * (1 - f) + d[j + 1][series[si][0]] * f; }
+    c.box._final = function () { clip.setAttribute("width", c.w); tips.forEach(function (t) { t.setAttribute("opacity", 0); }); labs.forEach(function (l) { l[0].style.opacity = 1; }); };
+    c.box._reset = function () { clip.setAttribute("width", 0); labs.forEach(function (l) { l[0].style.opacity = 0; }); };
+    c.box._play = function () {
+      clip.setAttribute("width", 0); labs.forEach(function (l) { l[0].style.opacity = 0; l[0].style.transition = "opacity .35s ease"; });
+      anim(2600, function (t) {
+        var k = clamp(t / 2600), xc = m.l + W * (k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+        clip.setAttribute("width", xc + 2);
+        labs.forEach(function (l) { if (xc >= l[1] - 1) l[0].style.opacity = 1; });
+        tips.forEach(function (tp, si) { var v = at(si, xc); tp.setAttribute("x", xc + 7); tp.setAttribute("y", y(v) + 4); tp.textContent = n1(v); tp.setAttribute("opacity", k > 0 && k < 1 ? 1 : 0); });
+      });
+    };
     fx.arm("ch-termo");
     c.svg.setAttribute("aria-label", "Termômetro de setembro de 2025 a outubro de 2026. Em outubro de 2026, mercado total +7,2% e sem leite longa vida +3,6%.");
   }
@@ -345,6 +384,7 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
     function show(id, animate) {
       var box = document.getElementById(id); if (!box) return;
       done[id] = true; box.classList.add("fx-on"); lines(box, animate); if (animate) count(box);
+      if (animate && box._play) box._play(); else if (box._final) box._final();
     }
     var io = (!reduce && "IntersectionObserver" in window) ? new IntersectionObserver(function (es) {
       es.forEach(function (en) { if (en.isIntersecting) { io.unobserve(en.target); show(en.target.id, true); } });
@@ -353,13 +393,22 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
       arm: function (id) {
         var box = document.getElementById(id); if (!box) return;
         if (done[id] || !io) { box.classList.add("fx-done"); show(id, false); return; }
+        if (box._reset) box._reset();
         io.observe(box);
       },
-      all: function () { ["kpis", "ch-idcl", "ch-termo", "tb-ret"].forEach(function (id) { var b = document.getElementById(id); if (b) { b.classList.add("fx-done"); show(id, false); } });
+      all: function () { Array.prototype.forEach.call(document.querySelectorAll(".fx-h"), function (h) { h.classList.add("fx-done", "fx-on"); });
+        ["kpis", "ch-idcl", "ch-termo", "tb-ret"].forEach(function (id) { var b = document.getElementById(id); if (b) { b.classList.add("fx-done"); show(id, false); } });
         Array.prototype.forEach.call(document.querySelectorAll("[data-v]"), function (e) { e.textContent = n1(parseFloat(e.getAttribute("data-v")), true) + "%"; }); }
     };
   })();
   fx.arm("kpis"); fx.arm("tb-ret");
+  // títulos
+  (function () {
+    var hs = document.querySelectorAll("h2.q, h3.sec"), reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || !("IntersectionObserver" in window)) return;
+    var io = new IntersectionObserver(function (es) { es.forEach(function (en) { if (en.isIntersecting) { io.unobserve(en.target); en.target.classList.add("fx-on"); } }); }, { threshold: 0.6 });
+    Array.prototype.forEach.call(hs, function (h) { h.classList.add("fx-h"); io.observe(h); });
+  })();
 
   // Dentro do site do OC (iframe de proporção fixa, como o do Infogram): a página é desenhada com 806 px
   // de largura e reduzida para caber inteira no quadro, sem rolagem e sem cortes.
