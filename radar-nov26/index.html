@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Fira+Sans:wght@400;600&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+<script>try { if (window.self !== window.top) document.documentElement.className += " embed"; } catch (e) { document.documentElement.className += " embed"; }</script>
 <style>
 /* Identidade visual do Observatório do Consumidor (edições impressas do Radar): fundo cinza-rosado, azul do OC,
    laranja de destaque, azul-petróleo para a série principal. Uma coluna de leitura, como a newsletter em PDF. */
@@ -28,6 +29,9 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+html.embed, html.embed body { overflow: hidden; }
+html.embed body { width: 806px; transform-origin: 0 0; }
+html.embed #edicao, html.embed .toolbar { max-width: none; width: 806px; }
 html, body { margin: 0; background: var(--bg); }
 body { color: var(--ink); font-family: var(--font-body); }
 .toolbar { max-width: 806px; margin: 0 auto; padding: 8px 16px 0; display: flex; justify-content: flex-end; gap: 10px; align-items: center; min-height: 8px; }
@@ -107,25 +111,32 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
 .rod .cr { text-align: right; padding: 8px 10px; font-size: 13px; letter-spacing: .1em; line-height: 1.45; }
 
 @media (max-width: 620px) {
-  .hero { height: 220px; }
-  .hero .logo { left: 16px; top: 22px; width: 64px; }
-  .hero .oc { font-size: 28px; top: 28px; padding-left: 70px; text-align: left; }
-  .hero .radar { right: 16px; top: 140px; font-size: 19px; }
-  .hero .mes { right: 18px; top: 178px; font-size: 16px; }
-  .body { padding: 0 16px; }
-  .kpis { grid-template-columns: 1fr; }
-  .kpi { min-height: 0; padding: 14px 10px 16px; }
-  .kpi .p { margin-top: 6px; }
-  p.t { font-size: 15.5px; text-align: left; }
-  .rod { grid-template-columns: 1fr; }
-  .rod .lg { border-right: 0; border-bottom: 2px solid #1d4f72; margin: 0 14px; padding: 14px 0; }
-  .rod .cr { text-align: center; letter-spacing: .04em; }
+  html:not(.embed) .hero { height: 220px; }
+  html:not(.embed) .hero .logo { left: 16px; top: 22px; width: 64px; }
+  html:not(.embed) .hero .oc { font-size: 28px; top: 28px; padding-left: 70px; text-align: left; }
+  html:not(.embed) .hero .radar { right: 16px; top: 140px; font-size: 19px; }
+  html:not(.embed) .hero .mes { right: 18px; top: 178px; font-size: 16px; }
+  html:not(.embed) .body { padding: 0 16px; }
+  html:not(.embed) .kpis { grid-template-columns: 1fr; }
+  html:not(.embed) .kpi { min-height: 0; padding: 14px 10px 16px; }
+  html:not(.embed) .kpi .p { margin-top: 6px; }
+  html:not(.embed) p.t { font-size: 15.5px; text-align: left; }
+  html:not(.embed) .rod { grid-template-columns: 1fr; }
+  html:not(.embed) .rod .lg { border-right: 0; border-bottom: 2px solid #1d4f72; margin: 0 14px; padding: 14px 0; }
+  html:not(.embed) .rod .cr { text-align: center; letter-spacing: .04em; }
 }
 @media print {
   .toolbar, .opt { display: none !important; }
   html, body { background: var(--bg); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
-@media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
+.fx-bar { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); transition: transform .9s cubic-bezier(.2,.75,.25,1); }
+.fx-fade { opacity: 0; transition: opacity .5s ease; }
+.fx-row { opacity: 0; transform: translateY(8px); transition: opacity .45s ease, transform .45s ease; }
+.fx-on .fx-bar { transform: scaleY(1); }
+.fx-on .fx-fade, .fx-on .fx-row { opacity: 1; transform: none; }
+.fx-bar:hover { filter: brightness(.9); }
+.fx-done .fx-bar, .fx-done .fx-fade, .fx-done .fx-row { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .tip { transition: none; } .fx-bar, .fx-fade, .fx-row { transition: none !important; } }
 </style>
 </head>
 <body>
@@ -247,7 +258,7 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
     var box = document.getElementById("kpis");
     D.kpi.forEach(function (k) {
       var d = document.createElement("div"); d.className = "kpi";
-      [["l", k[0]], ["p", k[1]], ["v " + (k[2] >= 0 ? "pos" : "neg"), n1(k[2], true) + "%"]].forEach(function (p) { var e = document.createElement("div"); e.className = p[0]; e.textContent = p[1]; d.appendChild(e); });
+      [["l", k[0]], ["p", k[1]], ["v " + (k[2] >= 0 ? "pos" : "neg"), n1(k[2], true) + "%"]].forEach(function (p) { var e = document.createElement("div"); e.className = p[0]; e.textContent = p[1]; if (p[0].indexOf("v ") === 0) { e.setAttribute("data-v", k[2]); } d.appendChild(e); });
       box.appendChild(d);
     });
   })();
@@ -255,7 +266,7 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
   // retrato
   (function () {
     var tb = document.getElementById("tb-ret");
-    D.ret.forEach(function (r) { var tr = document.createElement("tr"); r.forEach(function (v) { var td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }); tb.appendChild(tr); });
+    D.ret.forEach(function (r, i) { var tr = document.createElement("tr"); tr.className = "fx-row"; tr.style.transitionDelay = (i * 110) + "ms"; r.forEach(function (v) { var td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }); tb.appendChild(tr); });
   })();
 
   function drawIDCL() {
@@ -266,16 +277,16 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
     var y = function (v) { return m.t + H - v / 85 * H; };
     d.forEach(function (r, i) {
       var x = m.l + i * bw;
-      el("rect", { x: x + bw * 0.2, width: bw * 0.6, y: y(r[1]), height: y(0) - y(r[1]), fill: C.orange }, c.svg);
-      el("text", { x: x + bw / 2, y: y(r[1]) - 7, "text-anchor": "middle", "font-size": fs, fill: "#111" }, c.svg, n1(r[1]));
+      el("rect", { x: x + bw * 0.2, width: bw * 0.6, y: y(r[1]), height: y(0) - y(r[1]), fill: C.orange, class: "fx-bar", style: "transition-delay:" + (i * 45) + "ms" }, c.svg);
+      el("text", { x: x + bw / 2, y: y(r[1]) - 7, "text-anchor": "middle", "font-size": fs, fill: "#111", class: "fx-fade", style: "transition-delay:" + (500 + i * 45) + "ms" }, c.svg, n1(r[1]));
       xLabel(c.svg, x + bw / 2 + 4, y(0) + 14, r[0], fs);
     });
     el("line", { x1: m.l, x2: c.w - m.r, y1: y(0), y2: y(0), stroke: C.base, "stroke-width": 1.5 }, c.svg);
     if (cat) {
       el("line", { x1: m.l, x2: c.w - m.r, y1: y(50), y2: y(50), stroke: C.ink, "stroke-width": 1, "stroke-dasharray": "2 3" }, c.svg);
       el("text", { x: c.w - m.r, y: y(50) - 4, "text-anchor": "end", "font-size": 11, fill: C.ink }, c.svg, "50%");
-      el("path", { d: d.map(function (r, i) { return (i ? "L" : "M") + (m.l + i * bw + bw / 2) + "," + y(r[2]); }).join(""), fill: "none", stroke: C.navy, "stroke-width": 2.5, "stroke-dasharray": "7 4" }, c.svg);
-      d.forEach(function (r, i) { el("circle", { cx: m.l + i * bw + bw / 2, cy: y(r[2]), r: 4, fill: "#fff", stroke: C.navy, "stroke-width": 2 }, c.svg); });
+      el("path", { d: d.map(function (r, i) { return (i ? "L" : "M") + (m.l + i * bw + bw / 2) + "," + y(r[2]); }).join(""), fill: "none", stroke: C.navy, "stroke-width": 2.5, "stroke-dasharray": "7 4", class: "fx-fade" }, c.svg);
+      d.forEach(function (r, i) { el("circle", { cx: m.l + i * bw + bw / 2, cy: y(r[2]), r: 4, fill: "#fff", stroke: C.navy, "stroke-width": 2, class: "fx-fade" }, c.svg); });
     }
     d.forEach(function (r, i) {
       var hit = el("rect", { x: m.l + i * bw, y: m.t, width: bw, height: H, fill: "transparent" }, c.svg);
@@ -284,6 +295,7 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
           (cat ? "<br>" + Math.round(r[2] * 13 / 100) + " de 13 categorias: <b>" + n1(r[2]) + "%</b>" : ""));
       });
     });
+    fx.arm("ch-idcl");
     c.svg.setAttribute("aria-label", "Índice de Difusão de setembro de 2025 a outubro de 2026. Em outubro de 2026, 58,1%.");
   }
 
@@ -294,14 +306,14 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
     d.forEach(function (r, i) { xLabel(c.svg, x(i) + 4, c.h - m.b + 18, r[0], fs); });
     var series = [[1, C.navy], [2, C.orange]];
     series.forEach(function (s) {
-      el("path", { d: d.map(function (r, i) { return (i ? "L" : "M") + x(i) + "," + y(r[s[0]]); }).join(""), fill: "none", stroke: s[1], "stroke-width": 3, "stroke-linejoin": "round" }, c.svg);
+      el("path", { d: d.map(function (r, i) { return (i ? "L" : "M") + x(i) + "," + y(r[s[0]]); }).join(""), fill: "none", stroke: s[1], "stroke-width": 3, "stroke-linejoin": "round", class: "fx-line" }, c.svg);
     });
     series.forEach(function (s) {
       d.forEach(function (r, i) {
         var v = r[s[0]], o = r[3 - s[0]], above = v >= o;
         var ty = above ? y(v) - 9 : y(v) + 19;
         if (i === d.length - 1) { ty = above ? y(v) - 4 : y(v) + 14; }
-        el("text", { x: x(i) + (i === d.length - 1 ? 12 : 0), y: ty, "text-anchor": i === d.length - 1 ? "start" : "middle", "font-size": fs, "font-weight": 600, fill: "#333", stroke: "#f2eeee", "stroke-width": 3, "paint-order": "stroke" }, c.svg, n1(v));
+        el("text", { x: x(i) + (i === d.length - 1 ? 12 : 0), y: ty, "text-anchor": i === d.length - 1 ? "start" : "middle", "font-size": fs, "font-weight": 600, fill: "#333", stroke: "#f2eeee", "stroke-width": 3, "paint-order": "stroke", class: "fx-fade", style: "transition-delay:" + (300 + i * 90) + "ms" }, c.svg, n1(v));
       });
     });
     d.forEach(function (r, i) {
@@ -309,12 +321,58 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
       var hit = el("rect", { x: x(i) - step / 2, y: m.t, width: step, height: H, fill: "transparent" }, c.svg);
       hover(hit, c, function () { tipOn(c, x(i), Math.min(y(r[1]), y(r[2])) - 22, "<b>" + esc(r[0]) + "</b><br>Mercado total: <b>" + n1(r[1], true) + "%</b><br>Sem leite longa vida: <b>" + n1(r[2], true) + "%</b>"); });
     });
+    fx.arm("ch-termo");
     c.svg.setAttribute("aria-label", "Termômetro de setembro de 2025 a outubro de 2026. Em outubro de 2026, mercado total +7,2% e sem leite longa vida +3,6%.");
   }
 
-  function drawAll() { drawIDCL(); drawTermo(); }
+  // ---------- efeitos de entrada (estilo Infogram): animam quando o elemento aparece na tela
+  var fx = (function () {
+    var done = {}, reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function lines(box, animate) {
+      Array.prototype.forEach.call(box.querySelectorAll(".fx-line"), function (p) {
+        if (!animate || !p.getTotalLength) { p.style.strokeDasharray = ""; p.style.strokeDashoffset = ""; return; }
+        var L = p.getTotalLength(); p.style.transition = "none"; p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+        p.getBoundingClientRect(); p.style.transition = "stroke-dashoffset 1.6s ease-in-out"; p.style.strokeDashoffset = 0;
+      });
+    }
+    function count(box) {
+      Array.prototype.forEach.call(box.querySelectorAll("[data-v]"), function (e) {
+        var v = parseFloat(e.getAttribute("data-v")), t0 = null;
+        function step(ts) { if (!t0) t0 = ts; var k = Math.min(1, (ts - t0) / 1100), q = 1 - Math.pow(1 - k, 3); e.textContent = n1(v * q, true) + "%"; if (k < 1) requestAnimationFrame(step); }
+        requestAnimationFrame(step);
+      });
+    }
+    function show(id, animate) {
+      var box = document.getElementById(id); if (!box) return;
+      done[id] = true; box.classList.add("fx-on"); lines(box, animate); if (animate) count(box);
+    }
+    var io = (!reduce && "IntersectionObserver" in window) ? new IntersectionObserver(function (es) {
+      es.forEach(function (en) { if (en.isIntersecting) { io.unobserve(en.target); show(en.target.id, true); } });
+    }, { threshold: 0.25 }) : null;
+    return {
+      arm: function (id) {
+        var box = document.getElementById(id); if (!box) return;
+        if (done[id] || !io) { box.classList.add("fx-done"); show(id, false); return; }
+        io.observe(box);
+      },
+      all: function () { ["kpis", "ch-idcl", "ch-termo", "tb-ret"].forEach(function (id) { var b = document.getElementById(id); if (b) { b.classList.add("fx-done"); show(id, false); } });
+        Array.prototype.forEach.call(document.querySelectorAll("[data-v]"), function (e) { e.textContent = n1(parseFloat(e.getAttribute("data-v")), true) + "%"; }); }
+    };
+  })();
+  fx.arm("kpis"); fx.arm("tb-ret");
+
+  // Dentro do site do OC (iframe de proporção fixa, como o do Infogram): a página é desenhada com 806 px
+  // de largura e reduzida para caber inteira no quadro, sem rolagem e sem cortes.
+  function fit() {
+    var root = document.documentElement; if (root.className.indexOf("embed") < 0) return;
+    var b = document.body; b.style.transform = "none"; b.style.marginLeft = "0";
+    var H = b.scrollHeight, s = Math.min(window.innerWidth / 806, window.innerHeight / H);
+    b.style.transform = "scale(" + s + ")"; b.style.marginLeft = Math.max(0, (window.innerWidth - 806 * s) / 2) + "px";
+  }
+  function drawAll() { drawIDCL(); drawTermo(); fit(); }
   document.getElementById("tg-cat").addEventListener("change", drawIDCL);
   var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  window.addEventListener("load", fit); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
   drawAll();
 
   // ---------- PDF: mesma página, em uma folha contínua, como a newsletter
@@ -339,6 +397,7 @@ table.ret tbody tr:nth-child(even) td { background: var(--white); }
   btn.addEventListener("click", function () {
     if (!saver) return;
     btn.disabled = true; msg.textContent = "Gerando o PDF…";
+    fx.all();
     buildPdf().then(function (blob) { return saver(blob); })
       .then(function () { msg.textContent = ""; })
       .catch(function (e) { msg.textContent = (e && e.code === "declined") ? "" : "Não foi possível gerar o PDF agora. Tente novamente."; })
